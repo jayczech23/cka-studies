@@ -1,0 +1,185 @@
+= Core Concepts for CKA
+
+The following are the core concepts of Kubernetes that I need to understand for the CKA exam. All of these notes are taken from the CKA course on Udemy.
+
+== Cluster Architecture
+
+KubeAPI Server is responsible for orchestrating all operations within the cluster.
+Exposes K8s API to external users and internal controllers. Worker nodes also use it to communicate with the cluster.
+
+Kubelet is an agent that runs on each node in the cluster. Listens for instructions from master control plane.
+
+Kube proxy service enables containers on each node to communicate with each other
+
+=== Container Runtimes - Docker vs containerd
+
+crictl works in the perspective of K8s and can work across different CRI container runtimes.
+
+Primarily used to inspect and debug container runtimes. NOT used to create containers.
+
+As opposed to nerctl, which was specifically created for containerd runtime
+
+=== etcd
+
+Distributed, reliable key value store that is simple, secure, and fast.
+
+KVS stores information in the form of documents (pages), each entity gets a document (like Firebase Firestore).
+
+When you run the etcd service, it starts and listens on *port 2379* by DEFAULT.
+
+Default client is the *etcdctl client* that can be used to store and retrieve data from the etcd store.
+
+==== History
+
+Change between v2.0 and v3.0 contained an API change. 
+
+check which version etcctl is set to work with. `etcdctl --version`, 3.0: `etcdctl version`
+
+Newer versions of etcd, the default is to use etcd 3.0 API.
+
+==== etcd in Kubernetes
+
+Every change you make to the cluster, is updated in the etcd server. Only AFTER it's updated in etcd, is the change considered complete.
+
+NOTE: etcd seems to be the source of truth for the state of your K8s cluster.
+
+`advertise-client-urls` is the URL that the etcd server uses to communicate with the client.
+
+In a HA environment, you will have multiple master nodes in your cluster. Which means you will have multiple etcd instances across all master nodes. `--initial-cluster` option in `etcd.service` is where you specify the different instances of the overall etcd service.
+
+==== ETCD - Commands (Optional)
+```
+
+(Optional) Additional information about ETCDCTL Utility
+
+ETCDCTL is the CLI tool used to interact with ETCD.
+
+ETCDCTL can interact with ETCD Server using 2 API versions - Version 2 and Version 3.  By default its set to use Version 2. Each version has different sets of commands.
+
+For example ETCDCTL version 2 supports the following commands:
+
+    etcdctl backup
+    etcdctl cluster-health
+    etcdctl mk
+    etcdctl mkdir
+    etcdctl set
+
+
+Whereas the commands are different in version 3
+
+    etcdctl snapshot save 
+    etcdctl endpoint health
+    etcdctl get
+    etcdctl put
+
+
+To set the right version of API set the environment variable ETCDCTL_API command
+
+export ETCDCTL_API=3
+
+
+When API version is not set, it is assumed to be set to version 2. And version 3 commands listed above don't work. When API version is set to version 3, version 2 commands listed above don't work.
+
+
+Apart from that, you must also specify path to certificate files so that ETCDCTL can authenticate to the ETCD API Server. The certificate files are available in the etcd-master at the following path. We discuss more about certificates in the security section of this course. So don't worry if this looks complex:
+
+    --cacert /etc/kubernetes/pki/etcd/ca.crt     
+    --cert /etc/kubernetes/pki/etcd/server.crt     
+    --key /etc/kubernetes/pki/etcd/server.key
+
+
+So for the commands I showed in the previous video to work you must specify the ETCDCTL API version and path to certificate files. Below is the final form:
+
+
+    kubectl exec etcd-master -n kube-system -- sh -c "ETCDCTL_API=3 etcdctl get / --prefix --keys-only --limit=10 --cacert /etc/kubernetes/pki/etcd/ca.crt --cert /etc/kubernetes/pki/etcd/server.crt  --key /etc/kubernetes/pki/etcd/server.key" 
+```
+
+=== kube-api server
+
+*Primary management component in K8s*. When you run a kubectl command, it's the kube-api server that processes the request in the following steps
+
+. Authenticates the request
+. Validate the request
+. Retrieve the data
+. Update etcd *Only component that interacts directly with etcd*
+. Scheduler
+. Kubelet
+
+=== Kube Controller Manager
+
+Manages various controllers within the cluster. Each controller is a separate process. Controller is like a _department_ that manages different responsibilities.
+
+When you install the Kube Controller Manager, the different controllers are installed as well.
+
+How to view the kubecontroller manager server options?
+
+If used _kube_adm_ to setup cluster, check the /etc/kubernetes/manifests/kube-controller-manager.yaml file.
+
+==== Contollers
+
+Is a proces that *continuously monitors the state* of various components in the system. Works to bring the system to the desired functioning state.
+
+===== Node Controller
+
+Responsible for monitoring the state of nodes in the cluster. If a node goes down, the node controller is responsible for noticing that and taking action.
+
+Uses the kube-api server to check the state of the nodes.
+
+*Node-monitor-period* is how often the node controller checks the state of the nodes.
+
+*node-monitor-grace-period* is the time the node controller waits before marking a node as unhealthy.
+
+*pod-eviction-timeout* is the time the node controller waits before evicting a pod from a node.
+
+===== Replication Controller
+
+Monitors the number of replica sets in the cluster. If the number of pods in a replica set is less than the desired number, the replication controller will take action to bring the number of pods back to the desired state.
+
+=== Kube Scheduler
+
+Responsible for scheduling the pods on the worker nodes. It's the kube scheduler that *decides which pod goes on which node*
+
+CAUTION: DOES NOT actually place the pods, that is the job of the kubelet running on the worker nodes.
+
+When you create a pod, the kube scheduler will look at the pod and decide which node to place the pod on.
+
+Scheduler assigns pods by looking at the resources available on the nodes and the resources required by the pod, and attempts to identify the best possible node to place the pod by filtering and *ranking the nodes* (using a priority function and calculating the amount of resources that the node would have available AFTER placing the pod).
+
+NOTE: This assignment algorithm can be customized and we can of course write our own schedulers.
+
+=== Kubelet
+
+Like the "captain" on a worker (node) ship. Responsible for *registering* with the cluster. Sole point of contact between the master ship (control plane). Load and unload containers on the ship as instructed by the Kube Scheduler.Sends back reports back to the master ship at regular intervals on the status of the node and the pods & containers running on it.
+
+When instructions to load a pod on the worker node, kubelet makes a request to the node OCI runtime to pull the required image and run the instance.
+
+Continues to monitor the state of the pod and containers in it, and reports to the master plane on a timely basis.
+
+NOTE: Must *ALWAYS* install kubelet on worker nodes in the cluster if you use `kubeadm` tool to deploy cluster.
+
+=== Kube Proxy
+
+*kube-proxy* is a process that runs on each node in the cluster. It looks for new *services* in the cluster and creates the necessary rules to forward traffic from the service to the appropriate pod on each node. One way it does this, is to create *iptables rules* on each node, to forward from the service IP to the IP of the actual pod.
+
+=== Pod Network 
+
+Within a K8s cluster, every pod can reach another pod, even if it is on a separate node via the *Pod Network*.
+
+Services within this network are created to expose a pod to the cluster. But, Services can not join the Pod Network, they are a virtual component that only live in the K8s memory. 
+
+== Create and Configure Pods
+
+=== Pods
+
+Pods are the smallest deployable units in K8s. They are the smallest unit that can be created, scheduled, and managed.
+
+*Assumptions:*
+
+* Application is already developed and built into docker images
+* Available on a registry 
+* K8s cluster is already setup and functional (single or multi-node)
+
+
+
+
+
