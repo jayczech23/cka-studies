@@ -1,0 +1,5 @@
+= CKA Studies
+
+Study Notes in preparation for the Certified Kubernetes Administrator (CKA) exam by Cloud Native Computing Foundation.
+
+https://www.cncf.io/training/certification/cka/
