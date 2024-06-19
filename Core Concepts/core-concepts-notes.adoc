@@ -133,7 +133,19 @@ Uses the kube-api server to check the state of the nodes.
 
 ===== Replication Controller
 
-Monitors the number of replica sets in the cluster. If the number of pods in a replica set is less than the desired number, the replication controller will take action to bring the number of pods back to the desired state.
+Provides high availability. Helps with load balancing and scaling. Especially if the % of resources on a certain node has been reached, and deploy new pods across different nodes in the cluster.
+
+Monitors the number of *replica sets* in the cluster. If the number of pods in a replica set is less than the desired number, the replication controller will take action to bring the number of pods back to the desired state.
+
+NOTE: Replication Controller is the older version of the Replica Set. The *Replica Set* is the newer version of the Replication Controller.
+
+Replcia Sets can adopt pods that were not created by the Replica Set. This is a feature that the Replication Controller does not have.
+
+Also, *selector* property is available in the Replica Set, which is not available in the Replication Controller.
+
+Labeling pods allows replica sets to filter which pods they should monitor and manage, by using the `selector` property in the configuration.
+
+To scale a replica set up, update the `replicas` property in definition file, and run `kubectl replace -f `configuration-file.yml` or run `kubectl scale --replicas=xx -f configuration-file.yml`
 
 === Kube Scheduler
 
@@ -179,7 +191,20 @@ Pods are the smallest deployable units in K8s. They are the smallest unit that c
 * Available on a registry 
 * K8s cluster is already setup and functional (single or multi-node)
 
+NOTE: Pods usually have a 1-to-1 relationship with containers. But, it is possible to have multiple containers in a single pod. You DO NOT add containers to an existing pod to scale up, you create a new pod.
 
+Sometimes, you might have a *helper container* in the pod that is used to perform a specific task that you want to live alongside your application container. They can communicate directly to eachother since they share the same network space and the same storage space.
 
+Can utilize `kubectl` to interact with a cluster's pods.
 
+==== YAML in Kubernetes
 
+`xxxx-definition.yaml` always include a standardized keys in YAML which are always required. These include:
+
+* `apiVersion` - version of K8s API to create the object. ex. `v1`, `apps/v1`, 
+* `kind` - type of object to create. ex. `Pod`, `Service`, `Deployment`, `ReplicaSet`
+* `metadata` - data that helps uniquely identify the object. ex. `name`, `labels`, `annotations`
+* `spec` - (Specification), this is where we provide the details of the object, specific for the type of object.
+** `containers` - list of containers in the pod. Each container has a name and an image for each entry in the list.
+
+NOTE: Can only add specific params under metadata as defined by K8s API.
