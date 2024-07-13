@@ -208,3 +208,38 @@ Can utilize `kubectl` to interact with a cluster's pods.
 ** `containers` - list of containers in the pod. Each container has a name and an image for each entry in the list.
 
 NOTE: Can only add specific params under metadata as defined by K8s API.
+
+== Services and other Networking Primitives
+
+=== Services
+
+Enable communication between different components within and outside the application. They allow loose coupling between microservices.
+
+* Enable communication between pods (even if they are on different nodes).
+* Enable communication between front-end users and frontend applications.
+
+
+==== NodePort Service
+
+The *Target port* is the port on the pod that the service forwards traffic to. The *Port* is the port on the service itself. The *NodePort* is the port on the node that the service listens on for traffic.
+
+image::images/nodeport.png[]
+
+NOTE: The only mandatory port in the spec is *port*. If you don't provide *targetPort*, it is assumed to be the same value as *port*. If you don't provide a *nodePort*, K8s will assign a random port in the range *30000-32767*.
+
+To link the service with specific pods, we use the labels and selector methodology. The service will look for pods with the same labels as the selector in the service definition.
+
+The Service *automatically* load balances traffic across all pods that match the selector. It uses a random algorithm to do this. It also *automatically* creates the service across all nodes in the cluster.
+
+==== ClusterIP Service
+
+// TODO
+
+==== LoadBalancer Service
+
+Defines an internal service that balances traffic between nodes and pods, acting similar to NodePorts. Cloud provider load balancers can be used in place of these types of services.
+
+===== Services - Commands
+
+* `kubectl create -f service-definition.yml` - Create a service from a definition file.
+* `kubectl get services` - List all services in the cluster.
