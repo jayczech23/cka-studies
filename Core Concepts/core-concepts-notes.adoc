@@ -243,3 +243,50 @@ Defines an internal service that balances traffic between nodes and pods, acting
 
 * `kubectl create -f service-definition.yml` - Create a service from a definition file.
 * `kubectl get services` - List all services in the cluster.
+
+=== Namespaces
+
+Provides isolation of elements on the same cluster. Each namespace can have certain sets of policies for each namespace. Can also define quotas for each namespace for setting resource restrictions.
+
+Usually, there is a default namespace where you can access resources normally, but accessing resources in other namespaces requires specific urls:
+
+image::images/namespaces.png[]
+
+NOTE: When a service is created, a DNS entry is added automatically that is in this format. See below for URL anatomy of this DNS entry. Notice how a corresponding service (`svc`) is created for the namespace.
+
+image::images/url-anatomy.png[]
+
+==== KubeCTL commands for namespaces
+
+* `kubectl get pods --namespace=kube-system` - get all pods in a specified namespace
+* `kubectl create -f pod-definition.yml --namespace=dev` - Creates a pod based on pod definition config file in a specified namespace (ex. dev)
+
+NOTE: Can also specify the namespace within the pod spec file under *metadata*.
+
+* `kubectl config set-context $(kubectl config current-context) --namespace=dev` - Switch the current kubectl context to the specified namespace.
+* `kubectl get pods --all-namespaces` - Get all pods in ALL namespaces.
+
+==== Create a Resource Quota for a namespace
+
+. Create a resource quota config file. Ex. `compute-quota.yml`
++
+[source, yml]
+----
+# compute-quota.yml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+    name: compute-quote
+    namespace: dev
+# Provide limits
+spec:
+    hard:
+      pods: "10"
+      requests.cpu: "4"
+      requests.memory: 5Gi
+      limits.cpu: "10"
+      limits.memory: 10Gi
+----
++
+. Create the quota within the cluster - `kubectl create -f compute-quota.yml`
+
