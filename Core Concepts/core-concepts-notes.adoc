@@ -290,3 +290,28 @@ spec:
 +
 . Create the quota within the cluster - `kubectl create -f compute-quota.yml`
 
+== Imperative vs Declarative
+
+Imperative methods (kubectl commands) are convenient ways to execute K8s operations, but become hard to manage as complexity grows.
+
+image::images/imperative-commands.png[]
+
+Very taxing on the admin, as admin must always be aware of the state of the cluster and the objects within it.
+
+*VS*
+
+Controlling the state of the K8s cluster via declarative approaches (configuration .yml files) is preferred to follow IaaC methodologies, affording a trackable way to configure clusters.
+
+NOTE: Imperative commands are good for saving time. If a complex requirement is needed, follow a declarative method.
+
+Use the following options when running imperative commands:
+
+* `--dry-run` - will not create the resource, but will tell you if it can be created and if the syntax is correct
+* `-o yaml` - output the resoure definition in YAML format on screen.
+
+[TIP]
+.Useful References
+====
+* https://kubernetes.io/docs/reference/kubectl/conventions/
+* https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands
+====
